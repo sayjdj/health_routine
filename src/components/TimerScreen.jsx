@@ -6,6 +6,13 @@ import Controls from './Controls';
 import ProgressBar from './ProgressBar';
 import { useTimer } from '../hooks/useTimer';
 
+
+const formatTime = (seconds) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
 export default function TimerScreen({ routine, onComplete, onBack }) {
   const {
     isPlaying,
@@ -18,11 +25,7 @@ export default function TimerScreen({ routine, onComplete, onBack }) {
     skipNext
   } = useTimer(routine, onComplete);
 
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
+
 
   const isWork = phase === 'work';
   const bgColor = isWork ? 'bg-blue-50' : 'bg-orange-50';
