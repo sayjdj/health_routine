@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+const YOUTUBE_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
+
 export default function CustomRoutineModal({ initialData, onSave, onClose }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -34,6 +36,12 @@ export default function CustomRoutineModal({ initialData, onSave, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!YOUTUBE_ID_REGEX.test(formData.youtubeId)) {
+      alert('올바른 YouTube ID를 입력해주세요. (11자리 영문, 숫자, -, _ 조합)');
+      return;
+    }
+
     onSave(formData);
   };
 
@@ -49,7 +57,16 @@ export default function CustomRoutineModal({ initialData, onSave, onClose }) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">YouTube ID (예: mw5Z_v-CAsU)</label>
-            <input type="text" name="youtubeId" value={formData.youtubeId} onChange={handleChange} required className="w-full border border-gray-300 rounded-md p-2" />
+            <input
+              type="text"
+              name="youtubeId"
+              value={formData.youtubeId}
+              onChange={handleChange}
+              required
+              pattern="^[a-zA-Z0-9_-]{11}$"
+              title="11자리의 YouTube 비디오 ID를 입력해주세요."
+              className="w-full border border-gray-300 rounded-md p-2"
+            />
           </div>
 
           <div className="flex gap-4">
