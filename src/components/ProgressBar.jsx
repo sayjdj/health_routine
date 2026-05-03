@@ -2,6 +2,8 @@
 import { motion } from 'framer-motion';
 
 export default function ProgressBar({ progress, color }) {
+  // Optimization: Use scaleX instead of width to avoid expensive layout reflows.
+  // scaleX utilizes GPU-accelerated transforms for smoother animation.
   return (
     <div className="w-full h-2 bg-black/10 rounded-full overflow-hidden mt-6 relative">
       {/* ⚡ Bolt Optimization: Using scaleX instead of width to prevent expensive layout reflows and offload animation to the GPU. */}
