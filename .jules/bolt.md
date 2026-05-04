@@ -1,3 +1,7 @@
 ## 2023-10-27 - Framer Motion Layout Properties Anti-Pattern
 **Learning:** Found an anti-pattern where layout properties like `width` were being animated using `framer-motion` for a frequently updating component (`ProgressBar`). This causes expensive layout reflows on the main thread for every frame of the animation, leading to higher CPU usage and potential jank on lower-end devices. The preferred approach in this codebase (and general React/Framer ecosystem) is to use `transform` properties like `scaleX` which can be offloaded to the GPU (compositing).
 **Action:** When animating progress bars or similarly expanding/shrinking elements, apply a 100% base width (`w-full`), set the origin (`originX: 0` or `origin-left`), and animate `scaleX` between 0 and 1 instead of changing pixel/percentage `width`.
+
+## 2026-05-04 - Unnecessary Re-renders of Heavy Iframe
+**Learning:** `TimerScreen` contains a `YouTubePlayer` component that renders a heavy iframe. The timer ticks every second updating `timeLeft` state, causing `TimerScreen` to re-render, and without `React.memo`, `YouTubePlayer` function was also evaluating on every tick even though its props (`youtubeId`) remained unchanged. While React's virtual DOM prevents a full iframe reload, function execution overhead exists for heavy children during frequent ticking.
+**Action:** Always wrap heavy child components (like video players, maps, complex charts) with `React.memo` when their parent component relies on frequent state updates like a timer or progress interval.
