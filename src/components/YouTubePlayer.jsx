@@ -1,6 +1,11 @@
+import React from 'react';
+
 const YOUTUBE_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
 
-export default function YouTubePlayer({ youtubeId }) {
+// ⚡ Bolt Optimization: Wrapped in React.memo to prevent unnecessary re-renders.
+// TimerScreen updates state every second, which cascades down to this heavy iframe.
+// Since youtubeId is stable during a routine, memoizing prevents expensive reconciliation.
+const YouTubePlayer = React.memo(function YouTubePlayer({ youtubeId }) {
   if (!youtubeId) return <div className="w-full aspect-video bg-gray-200 flex items-center justify-center">No Video</div>;
 
   if (!YOUTUBE_ID_REGEX.test(youtubeId)) {
@@ -23,4 +28,6 @@ export default function YouTubePlayer({ youtubeId }) {
       ></iframe>
     </div>
   );
-}
+});
+
+export default YouTubePlayer;
