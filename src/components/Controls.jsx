@@ -1,7 +1,12 @@
 
+import React from 'react';
 import { Play, Pause, SkipForward, RotateCcw } from 'lucide-react';
 
-export default function Controls({ isPlaying, togglePlay, skipNext, resetTimer }) {
+// ⚡ Bolt: Memoized Controls to prevent unnecessary re-renders.
+// Why: TimerScreen updates state (timeLeft) every second, causing child re-renders.
+//      Controls receives stable callbacks and isPlaying (which only changes occasionally).
+//      Memoizing prevents ~44 unnecessary re-renders per 45s phase.
+const Controls = React.memo(function Controls({ isPlaying, togglePlay, skipNext, resetTimer }) {
   return (
     <div className="flex items-center justify-center gap-6 mt-8">
       <button
@@ -29,4 +34,6 @@ export default function Controls({ isPlaying, togglePlay, skipNext, resetTimer }
       </button>
     </div>
   );
-}
+});
+
+export default Controls;

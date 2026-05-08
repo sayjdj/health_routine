@@ -1,6 +1,12 @@
 
 
-export default function CapabilityCard({ capability }) {
+import React from 'react';
+
+// ⚡ Bolt: Memoized CapabilityCard to prevent unnecessary re-renders.
+// Why: TimerScreen updates state (timeLeft) every second. CapabilityCard
+//      receives a stable 'capability' object from the active routine, so it
+//      doesn't need to re-render every second.
+const CapabilityCard = React.memo(function CapabilityCard({ capability }) {
   if (!capability) return null;
 
   return (
@@ -19,4 +25,6 @@ export default function CapabilityCard({ capability }) {
       </div>
     </div>
   );
-}
+});
+
+export default CapabilityCard;
