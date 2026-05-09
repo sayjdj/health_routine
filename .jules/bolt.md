@@ -4,3 +4,7 @@
 ## 2024-05-07 - Memoizing child components of high-frequency updating parents
 **Learning:** Found an optimization opportunity where the `YouTubePlayer` iframe was needlessly re-rendering every second due to its parent component (`TimerScreen`) updating state (`timeLeft`) every second. React re-renders all child components by default when a parent updates, and iframes are expensive to remount or diff.
 **Action:** Always check if heavy child components (like iframes or large lists) are placed directly inside a parent that updates at high frequency (like a timer or scroll listener). If their props are stable, wrap them in `React.memo()` to block the cascading re-render.
+
+## 2025-01-26 - Separating setInterval from phase transitions
+**Learning:** Found an anti-pattern in `useTimer` where `setInterval` and phase transitions were in a single `useEffect` that had `timeLeft` as a dependency. This caused the interval to be destroyed and re-created every second, leading to timing drift and garbage collection overhead.
+**Action:** When using `setInterval` in React, always use functional state updates (`setTimeLeft(prev => prev - 1)`) and remove the state from the `useEffect` dependency array. Handle state-based transitions (e.g. `timeLeft === 0`) in a separate `useEffect` to keep the interval continuously running without interruption.
