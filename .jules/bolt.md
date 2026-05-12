@@ -1,6 +1,3 @@
-## 2023-10-27 - Framer Motion Layout Properties Anti-Pattern
-**Learning:** Found an anti-pattern where layout properties like `width` were being animated using `framer-motion` for a frequently updating component (`ProgressBar`). This causes expensive layout reflows on the main thread for every frame of the animation, leading to higher CPU usage and potential jank on lower-end devices. The preferred approach in this codebase (and general React/Framer ecosystem) is to use `transform` properties like `scaleX` which can be offloaded to the GPU (compositing).
-**Action:** When animating progress bars or similarly expanding/shrinking elements, apply a 100% base width (`w-full`), set the origin (`originX: 0` or `origin-left`), and animate `scaleX` between 0 and 1 instead of changing pixel/percentage `width`.
-## 2024-05-07 - Memoizing child components of high-frequency updating parents
-**Learning:** Found an optimization opportunity where the `YouTubePlayer` iframe was needlessly re-rendering every second due to its parent component (`TimerScreen`) updating state (`timeLeft`) every second. React re-renders all child components by default when a parent updates, and iframes are expensive to remount or diff.
-**Action:** Always check if heavy child components (like iframes or large lists) are placed directly inside a parent that updates at high frequency (like a timer or scroll listener). If their props are stable, wrap them in `React.memo()` to block the cascading re-render.
+## 2026-05-12 - [Prevent Interval Churn]
+**Learning:** In the timer implementation, placing the rapidly updating state variable 'timeLeft' in the useEffect dependency array along with 'setInterval' causes the interval to be destroyed and recreated every second.
+**Action:** Use functional state updates ('prev => prev - 1') and separate phase transition logic into a different useEffect to prevent interval churn and stabilize the continuous ticking logic.

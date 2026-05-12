@@ -18,23 +18,36 @@ export function useTimer(routine, onComplete) {
     }
   }, [routine]);
 
+  // ⚡ Bolt: Separate interval logic to prevent interval churn
+  // Why: Removing timeLeft from the interval's dependency array prevents
+  //      setInterval from being destroyed and recreated every single second.
   useEffect(() => {
     let interval = null;
 
-    if (isPlaying && timeLeft > 0) {
+    if (isPlaying) {
       interval = setInterval(() => {
         setTimeLeft(prev => {
-          if (prev === 4 || prev === 3 || prev === 2) {
-             // Play short beep at 3, 2, 1 seconds left
-             playBeep(800, 0.1);
-          } else if (prev === 1) {
-             // Play longer beep when transitioning
-             playBeep(1200, 0.4);
+          if (prev > 0) {
+            if (prev === 4 || prev === 3 || prev === 2) {
+               // Play short beep at 3, 2, 1 seconds left
+               playBeep(800, 0.1);
+            } else if (prev === 1) {
+               // Play longer beep when transitioning
+               playBeep(1200, 0.4);
+            }
+            return prev - 1;
           }
-          return prev - 1;
+          return prev;
         });
       }, 1000);
-    } else if (isPlaying && timeLeft === 0) {
+    }
+
+    return () => clearInterval(interval);
+  }, [isPlaying, playBeep]);
+
+  // ⚡ Bolt: Handle phase transitions in a separate effect
+  useEffect(() => {
+    if (isPlaying && timeLeft === 0) {
       if (phase === 'work') {
         if (currentSet >= routine.sets) {
           // Completed all sets
@@ -52,9 +65,7 @@ export function useTimer(routine, onComplete) {
         setTimeLeft(routine.workTime);
       }
     }
-
-    return () => clearInterval(interval);
-  }, [isPlaying, timeLeft, phase, currentSet, routine, playBeep, onComplete]);
+  }, [isPlaying, timeLeft, phase, currentSet, routine, onComplete]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying(prev => !prev);
