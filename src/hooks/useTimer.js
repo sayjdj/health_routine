@@ -18,12 +18,18 @@ export function useTimer(routine, onComplete) {
     }
   }, [routine]);
 
+  // ⚡ Bolt: Separated continuous interval ticking from state transition side-effects.
+  // Why: Including `timeLeft` in the `setInterval` dependency array caused the interval to be
+  // cleared and recreated every second (interval churn). By separating them, the interval
+  // stays stable, saving CPU cycles and improving timer accuracy.
   useEffect(() => {
     let interval = null;
 
-    if (isPlaying && timeLeft > 0) {
+    if (isPlaying) {
       interval = setInterval(() => {
         setTimeLeft(prev => {
+          if (prev <= 0) return 0;
+
           if (prev === 4 || prev === 3 || prev === 2) {
              // Play short beep at 3, 2, 1 seconds left
              playBeep(800, 0.1);
@@ -34,7 +40,15 @@ export function useTimer(routine, onComplete) {
           return prev - 1;
         });
       }, 1000);
-    } else if (isPlaying && timeLeft === 0) {
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying, playBeep]);
+
+  useEffect(() => {
+    if (isPlaying && timeLeft === 0) {
       if (phase === 'work') {
         if (currentSet >= routine.sets) {
           // Completed all sets
@@ -52,9 +66,7 @@ export function useTimer(routine, onComplete) {
         setTimeLeft(routine.workTime);
       }
     }
-
-    return () => clearInterval(interval);
-  }, [isPlaying, timeLeft, phase, currentSet, routine, playBeep, onComplete]);
+  }, [isPlaying, timeLeft, phase, currentSet, routine, onComplete]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying(prev => !prev);
