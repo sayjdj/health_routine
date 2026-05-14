@@ -4,3 +4,7 @@
 ## 2024-05-07 - Memoizing child components of high-frequency updating parents
 **Learning:** Found an optimization opportunity where the `YouTubePlayer` iframe was needlessly re-rendering every second due to its parent component (`TimerScreen`) updating state (`timeLeft`) every second. React re-renders all child components by default when a parent updates, and iframes are expensive to remount or diff.
 **Action:** Always check if heavy child components (like iframes or large lists) are placed directly inside a parent that updates at high frequency (like a timer or scroll listener). If their props are stable, wrap them in `React.memo()` to block the cascading re-render.
+
+## 2024-05-14 - Prevent interval churn by separating ticking and transition side-effects
+**Learning:** Placing rapidly changing state variables (like `timeLeft` ticking down every second) in the dependency array of a `useEffect` that sets up a `setInterval` causes the interval to be cleared and re-initialized every single second, defeating its purpose and causing unnecessary execution overhead.
+**Action:** Always separate the continuous interval ticking logic (using functional state updates like `prev => prev - 1`) from state transition side-effects (like detecting `timeLeft === 0` to move to the next phase) into distinct `useEffect` hooks. This ensures intervals stay active.
