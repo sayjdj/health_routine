@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useBeep } from './useBeep';
 
 export function useTimer(routine, onComplete) {
@@ -7,6 +7,9 @@ export function useTimer(routine, onComplete) {
   const [currentSet, setCurrentSet] = useState(1);
   const [timeLeft, setTimeLeft] = useState(routine?.workTime || 0);
   const { playBeep } = useBeep();
+
+  const prevTimeRef = useRef(timeLeft);
+  const prevIsPlayingRef = useRef(isPlaying);
 
   // Reset when routine changes
   useEffect(() => {
@@ -18,43 +21,54 @@ export function useTimer(routine, onComplete) {
     }
   }, [routine]);
 
+  // ⚡ Bolt: Extracted setInterval into its own useEffect that only depends on `isPlaying`.
+  // Why: Previously, the interval depended on `timeLeft`, meaning it was cleared and recreated
+  //      every single second (interval churn). This separates the continuous ticking logic.
   useEffect(() => {
     let interval = null;
-
-    if (isPlaying && timeLeft > 0) {
+    if (isPlaying) {
       interval = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev === 4 || prev === 3 || prev === 2) {
-             // Play short beep at 3, 2, 1 seconds left
-             playBeep(800, 0.1);
-          } else if (prev === 1) {
-             // Play longer beep when transitioning
-             playBeep(1200, 0.4);
-          }
-          return prev - 1;
-        });
+        setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
       }, 1000);
-    } else if (isPlaying && timeLeft === 0) {
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  // ⚡ Bolt: Moved side-effects (beeping and phase transitions) out of the state updater function.
+  // Why: React state updaters must remain pure functions. Side effects inside updaters can execute multiple times
+  //      in strict/concurrent mode, causing redundant audio playbacks and unpredictable state.
+  useEffect(() => {
+    // Determine if we just ticked down
+    const justTicked = isPlaying && prevIsPlayingRef.current && prevTimeRef.current !== timeLeft && prevTimeRef.current - 1 === timeLeft;
+
+    if (justTicked) {
+      if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) {
+        playBeep(800, 0.1);
+      } else if (timeLeft === 0) {
+        playBeep(1200, 0.4);
+      }
+    }
+
+    // Original state machine logic: trigger transition when timeLeft is 0 AND we are playing
+    if (isPlaying && timeLeft === 0) {
       if (phase === 'work') {
         if (currentSet >= routine.sets) {
-          // Completed all sets
           setIsPlaying(false);
           if (onComplete) onComplete();
         } else {
-          // Move to rest phase
           setPhase('rest');
           setTimeLeft(routine.restTime);
         }
       } else {
-        // Move to next work phase
         setPhase('work');
         setCurrentSet(prev => prev + 1);
         setTimeLeft(routine.workTime);
       }
     }
 
-    return () => clearInterval(interval);
-  }, [isPlaying, timeLeft, phase, currentSet, routine, playBeep, onComplete]);
+    prevTimeRef.current = timeLeft;
+    prevIsPlayingRef.current = isPlaying;
+  }, [timeLeft, isPlaying, phase, currentSet, routine, playBeep, onComplete]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying(prev => !prev);
