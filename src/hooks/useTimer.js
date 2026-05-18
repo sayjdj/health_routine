@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useBeep } from './useBeep';
 
 export function useTimer(routine, onComplete) {
@@ -7,6 +7,9 @@ export function useTimer(routine, onComplete) {
   const [currentSet, setCurrentSet] = useState(1);
   const [timeLeft, setTimeLeft] = useState(routine?.workTime || 0);
   const { playBeep } = useBeep();
+
+  const prevTimeRef = useRef(timeLeft);
+  const prevIsPlayingRef = useRef(isPlaying);
 
   // Reset when routine changes
   useEffect(() => {
@@ -18,23 +21,35 @@ export function useTimer(routine, onComplete) {
     }
   }, [routine]);
 
+  // Handle Beep Side Effects (pure state updater)
+  useEffect(() => {
+    if (isPlaying && prevIsPlayingRef.current) {
+      if (prevTimeRef.current - timeLeft === 1) {
+        if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) {
+          playBeep(800, 0.1);
+        } else if (timeLeft === 0) {
+          playBeep(1200, 0.4);
+        }
+      }
+    }
+    prevTimeRef.current = timeLeft;
+    prevIsPlayingRef.current = isPlaying;
+  }, [timeLeft, isPlaying, playBeep]);
+
+  // Interval timer (avoid interval churn by excluding timeLeft from deps)
   useEffect(() => {
     let interval = null;
-
-    if (isPlaying && timeLeft > 0) {
+    if (isPlaying) {
       interval = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev === 4 || prev === 3 || prev === 2) {
-             // Play short beep at 3, 2, 1 seconds left
-             playBeep(800, 0.1);
-          } else if (prev === 1) {
-             // Play longer beep when transitioning
-             playBeep(1200, 0.4);
-          }
-          return prev - 1;
-        });
+        setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
       }, 1000);
-    } else if (isPlaying && timeLeft === 0) {
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  // Phase transition logic (handles 0-duration phases safely)
+  useEffect(() => {
+    if (isPlaying && timeLeft === 0) {
       if (phase === 'work') {
         if (currentSet >= routine.sets) {
           // Completed all sets
@@ -52,9 +67,7 @@ export function useTimer(routine, onComplete) {
         setTimeLeft(routine.workTime);
       }
     }
-
-    return () => clearInterval(interval);
-  }, [isPlaying, timeLeft, phase, currentSet, routine, playBeep, onComplete]);
+  }, [isPlaying, timeLeft, phase, currentSet, routine, onComplete]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying(prev => !prev);
