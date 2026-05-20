@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useBeep } from './useBeep';
 
 export function useTimer(routine, onComplete) {
@@ -6,7 +6,12 @@ export function useTimer(routine, onComplete) {
   const [phase, setPhase] = useState('work'); // 'work' | 'rest'
   const [currentSet, setCurrentSet] = useState(1);
   const [timeLeft, setTimeLeft] = useState(routine?.workTime || 0);
+
   const { playBeep } = useBeep();
+
+  // Refs for edge detection
+  const prevTimeRef = useRef(timeLeft);
+  const prevIsPlayingRef = useRef(isPlaying);
 
   // Reset when routine changes
   useEffect(() => {
@@ -15,35 +20,56 @@ export function useTimer(routine, onComplete) {
       setPhase('work');
       setCurrentSet(1);
       setTimeLeft(routine.workTime);
+      prevTimeRef.current = routine.workTime;
     }
   }, [routine]);
 
+  // ⚡ Bolt Optimization: Isolate interval logic from rapidly changing state
+  // Why: Depending on 'timeLeft' causes the interval to be cleared and recreated
+  //      every second (interval churn), hurting performance and accuracy.
   useEffect(() => {
     let interval = null;
-
-    if (isPlaying && timeLeft > 0) {
+    if (isPlaying) {
       interval = setInterval(() => {
         setTimeLeft(prev => {
-          if (prev === 4 || prev === 3 || prev === 2) {
-             // Play short beep at 3, 2, 1 seconds left
-             playBeep(800, 0.1);
-          } else if (prev === 1) {
-             // Play longer beep when transitioning
-             playBeep(1200, 0.4);
-          }
-          return prev - 1;
+          if (prev > 0) return prev - 1;
+          return prev;
         });
       }, 1000);
-    } else if (isPlaying && timeLeft === 0) {
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying]);
+
+  // Handle side-effects (beeps) and phase transitions safely outside the state updater
+  useEffect(() => {
+    const isTickDown = isPlaying && prevIsPlayingRef.current && prevTimeRef.current > timeLeft;
+
+    if (isTickDown) {
+        if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) {
+            playBeep(800, 0.1);
+        } else if (timeLeft === 0) {
+            playBeep(1200, 0.4);
+        }
+    }
+
+    if (isPlaying && timeLeft === 0) {
       if (phase === 'work') {
         if (currentSet >= routine.sets) {
           // Completed all sets
           setIsPlaying(false);
           if (onComplete) onComplete();
         } else {
-          // Move to rest phase
-          setPhase('rest');
-          setTimeLeft(routine.restTime);
+          // Move to rest phase, or skip directly to next work phase if restTime is 0
+          if (routine.restTime > 0) {
+              setPhase('rest');
+              setTimeLeft(routine.restTime);
+          } else {
+              setPhase('work');
+              setCurrentSet(prev => prev + 1);
+              setTimeLeft(routine.workTime);
+          }
         }
       } else {
         // Move to next work phase
@@ -53,8 +79,10 @@ export function useTimer(routine, onComplete) {
       }
     }
 
-    return () => clearInterval(interval);
-  }, [isPlaying, timeLeft, phase, currentSet, routine, playBeep, onComplete]);
+    prevTimeRef.current = timeLeft;
+    prevIsPlayingRef.current = isPlaying;
+
+  }, [timeLeft, isPlaying, phase, currentSet, routine, playBeep, onComplete]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying(prev => !prev);
@@ -73,8 +101,14 @@ export function useTimer(routine, onComplete) {
         setIsPlaying(false);
         if (onComplete) onComplete();
       } else {
-        setPhase('rest');
-        setTimeLeft(routine.restTime);
+        if (routine.restTime > 0) {
+            setPhase('rest');
+            setTimeLeft(routine.restTime);
+        } else {
+            setPhase('work');
+            setCurrentSet(prev => prev + 1);
+            setTimeLeft(routine.workTime);
+        }
       }
     } else {
       setPhase('work');
