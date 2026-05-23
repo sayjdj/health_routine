@@ -7,3 +7,7 @@
 ## 2026-05-21 - Interval Churn in React Timers
 **Learning:** Found a performance issue in `useTimer.js` where `timeLeft` was included in the `useEffect` dependency array for the `setInterval` timer. This caused the interval to be cleared and recreated every single second, adding unnecessary overhead.
 **Action:** When using `setInterval` for a high-frequency timer, separate the pure tick logic into its own `useEffect` that only depends on the active state (e.g., `isPlaying`). Handle side-effects (beeps, phase transitions) in a separate `useEffect` by using refs (`useRef`) to detect edge transitions (like a tick down) without triggering interval recreation.
+
+## 2025-02-19 - Suspense boundaries inside AnimatePresence
+**Learning:** When using `React.lazy()` inside `framer-motion`'s `<AnimatePresence>`, attaching the `key` prop directly to the lazily loaded component causes exit animations to fail. `<AnimatePresence>` relies on direct children having a `key` to track mounting/unmounting. A `<Suspense>` boundary without a key will be ignored, and the internal lazy component's key isn't recognized for the exit transition.
+**Action:** Always attach the `key` prop to the `<Suspense>` boundary itself (e.g., `<Suspense key="timer">`) rather than the lazily loaded component inside it to ensure `<AnimatePresence>` can properly track and animate exits.
