@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { defaultRoutines } from '../data/mockRoutines';
 
 const STORAGE_KEY = 'leg-routine-timer-data';
@@ -20,21 +20,25 @@ export function useRoutines() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(routines));
   }, [routines]);
 
-  const addRoutine = (routine) => {
-    setRoutines([...routines, { ...routine, id: `custom-${Date.now()}` }]);
-  };
+  // ⚡ Bolt: Memoize updater functions using useCallback and functional state updates
+  // Why: This ensures stable function references are returned from the hook,
+  // preventing unnecessary re-renders of components that depend on these functions
+  // (e.g. memoized RoutineItem components in RoutineList).
+  const addRoutine = useCallback((routine) => {
+    setRoutines(prev => [...prev, { ...routine, id: `custom-${Date.now()}` }]);
+  }, []);
 
-  const updateRoutine = (id, updatedRoutine) => {
-    setRoutines(routines.map(r => r.id === id ? { ...r, ...updatedRoutine } : r));
-  };
+  const updateRoutine = useCallback((id, updatedRoutine) => {
+    setRoutines(prev => prev.map(r => r.id === id ? { ...r, ...updatedRoutine } : r));
+  }, []);
 
-  const deleteRoutine = (id) => {
-    setRoutines(routines.filter(r => r.id !== id));
-  };
+  const deleteRoutine = useCallback((id) => {
+    setRoutines(prev => prev.filter(r => r.id !== id));
+  }, []);
 
-  const resetToDefault = () => {
+  const resetToDefault = useCallback(() => {
     setRoutines(defaultRoutines);
-  }
+  }, []);
 
   return { routines, addRoutine, updateRoutine, deleteRoutine, resetToDefault };
 }
