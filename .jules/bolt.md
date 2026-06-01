@@ -7,3 +7,6 @@
 ## 2026-05-21 - Interval Churn in React Timers
 **Learning:** Found a performance issue in `useTimer.js` where `timeLeft` was included in the `useEffect` dependency array for the `setInterval` timer. This caused the interval to be cleared and recreated every single second, adding unnecessary overhead.
 **Action:** When using `setInterval` for a high-frequency timer, separate the pure tick logic into its own `useEffect` that only depends on the active state (e.g., `isPlaying`). Handle side-effects (beeps, phase transitions) in a separate `useEffect` by using refs (`useRef`) to detect edge transitions (like a tick down) without triggering interval recreation.
+## 2024-11-13 - O(N) Re-renders on List Mutations
+**Learning:** Found an anti-pattern in `RoutineList.jsx` where any state change (like toggling `isModalOpen`) triggered a full re-render of all items in the list. This happened because inline list items were mapped directly, and `useRoutines` exported un-memoized functions.
+**Action:** When a list renders complex child components alongside independent state (e.g., modals), extract the child mapped element into its own component and wrap it in `React.memo()`. Ensure parent callbacks (`handlePlay`, `handleEdit`) and custom hook exports (`useRoutines`) use `useCallback` with functional state updates to maintain stable references.
