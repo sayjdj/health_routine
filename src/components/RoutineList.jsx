@@ -1,7 +1,46 @@
-import { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Play, Plus, Trash2, Edit } from 'lucide-react';
 import { useRoutines } from '../hooks/useRoutines';
 import CustomRoutineModal from './CustomRoutineModal';
+
+// ⚡ Bolt: Extracted and memoized RoutineItem to prevent unnecessary re-renders of the entire list.
+// Why: Previously, interacting with one item or toggling the modal caused all items to re-render.
+//      By using React.memo with stable callback props, we restrict re-renders to only the modified items.
+const RoutineItem = React.memo(function RoutineItem({ routine, onPlay, onEdit, onDelete }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col gap-3">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-bold text-lg text-gray-800">{routine.title}</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            {routine.sets}세트 • Work {routine.workTime}s / Rest {routine.restTime}s
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => onEdit(routine)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors">
+            <Edit size={18} />
+          </button>
+          <button onClick={() => onDelete(routine.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+            <Trash2 size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center mt-2">
+        <div className="flex gap-2 text-xs">
+          <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded-md">{routine.capability?.level}</span>
+          <span className="bg-gray-50 text-gray-600 px-2 py-1 rounded-md">{routine.capability?.target}</span>
+        </div>
+        <button
+          onClick={() => onPlay(routine)}
+          className="flex items-center gap-1 bg-gray-900 text-white px-4 py-2 rounded-full font-medium hover:bg-gray-800 transition-colors shadow-md"
+        >
+          <Play size={16} className="fill-current" /> 시작
+        </button>
+      </div>
+    </div>
+  );
+});
 
 export default function RoutineList({ onSelectRoutine }) {
   const { routines, addRoutine, updateRoutine, deleteRoutine, resetToDefault } = useRoutines();
@@ -16,23 +55,23 @@ export default function RoutineList({ onSelectRoutine }) {
     }
   };
 
-  const handlePlay = (routine) => {
+  const handlePlay = useCallback((routine) => {
     requestNotificationPermission();
     onSelectRoutine(routine);
-  };
+  }, [onSelectRoutine]);
 
-  const handleEdit = (routine) => {
+  const handleEdit = useCallback((routine) => {
     setEditingRoutine(routine);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleDelete = (id) => {
+  const handleDelete = useCallback((id) => {
     if (window.confirm("정말로 이 루틴을 삭제하시겠습니까?")) {
       deleteRoutine(id);
     }
-  };
+  }, [deleteRoutine]);
 
-  const handleSave = (data) => {
+  const handleSave = useCallback((data) => {
     if (editingRoutine) {
       updateRoutine(editingRoutine.id, data);
     } else {
@@ -40,7 +79,7 @@ export default function RoutineList({ onSelectRoutine }) {
     }
     setIsModalOpen(false);
     setEditingRoutine(null);
-  };
+  }, [editingRoutine, updateRoutine, addRoutine]);
 
   return (
     <div className="max-w-md mx-auto p-4 pb-20">
@@ -56,37 +95,13 @@ export default function RoutineList({ onSelectRoutine }) {
 
       <div className="space-y-4">
         {routines.map((routine) => (
-          <div key={routine.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col gap-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-bold text-lg text-gray-800">{routine.title}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {routine.sets}세트 • Work {routine.workTime}s / Rest {routine.restTime}s
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleEdit(routine)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors">
-                  <Edit size={18} />
-                </button>
-                <button onClick={() => handleDelete(routine.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center mt-2">
-              <div className="flex gap-2 text-xs">
-                <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded-md">{routine.capability?.level}</span>
-                <span className="bg-gray-50 text-gray-600 px-2 py-1 rounded-md">{routine.capability?.target}</span>
-              </div>
-              <button
-                onClick={() => handlePlay(routine)}
-                className="flex items-center gap-1 bg-gray-900 text-white px-4 py-2 rounded-full font-medium hover:bg-gray-800 transition-colors shadow-md"
-              >
-                <Play size={16} className="fill-current" /> 시작
-              </button>
-            </div>
-          </div>
+          <RoutineItem
+            key={routine.id}
+            routine={routine}
+            onPlay={handlePlay}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         ))}
       </div>
 
