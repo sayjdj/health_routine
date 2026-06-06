@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { defaultRoutines } from '../data/mockRoutines';
 
-const STORAGE_KEY = 'leg-routine-timer-data';
+export const STORAGE_KEY = 'leg-routine-timer-data';
 
 export function useRoutines() {
   const [routines, setRoutines] = useState(() => {
@@ -20,21 +20,25 @@ export function useRoutines() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(routines));
   }, [routines]);
 
-  const addRoutine = (routine) => {
-    setRoutines([...routines, { ...routine, id: `custom-${Date.now()}` }]);
-  };
+  // ⚡ Bolt: Wrapped returned functions in useCallback with functional state updates
+  // Why: This ensures that the references to these functions remain stable across renders.
+  //      This prevents unnecessary re-renders in child components (like RoutineItem)
+  //      that receive these functions as props when other states (like modal open) change.
+  const addRoutine = useCallback((routine) => {
+    setRoutines(prev => [...prev, { ...routine, id: `custom-${Date.now()}` }]);
+  }, []);
 
-  const updateRoutine = (id, updatedRoutine) => {
-    setRoutines(routines.map(r => r.id === id ? { ...r, ...updatedRoutine } : r));
-  };
+  const updateRoutine = useCallback((id, updatedRoutine) => {
+    setRoutines(prev => prev.map(r => r.id === id ? { ...r, ...updatedRoutine } : r));
+  }, []);
 
-  const deleteRoutine = (id) => {
-    setRoutines(routines.filter(r => r.id !== id));
-  };
+  const deleteRoutine = useCallback((id) => {
+    setRoutines(prev => prev.filter(r => r.id !== id));
+  }, []);
 
-  const resetToDefault = () => {
+  const resetToDefault = useCallback(() => {
     setRoutines(defaultRoutines);
-  }
+  }, []);
 
   return { routines, addRoutine, updateRoutine, deleteRoutine, resetToDefault };
 }
