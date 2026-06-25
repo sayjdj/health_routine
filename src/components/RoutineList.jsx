@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Play, Plus, Trash2, Edit } from 'lucide-react';
 import { useRoutines } from '../hooks/useRoutines';
 import CustomRoutineModal from './CustomRoutineModal';
@@ -8,31 +8,31 @@ export default function RoutineList({ onSelectRoutine }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState(null);
 
-  const requestNotificationPermission = async () => {
+  const requestNotificationPermission = useCallback(async () => {
     if ("Notification" in window) {
       if (Notification.permission !== "granted" && Notification.permission !== "denied") {
         await Notification.requestPermission();
       }
     }
-  };
+  }, []);
 
-  const handlePlay = (routine) => {
+  const handlePlay = useCallback((routine) => {
     requestNotificationPermission();
     onSelectRoutine(routine);
-  };
+  }, [requestNotificationPermission, onSelectRoutine]);
 
-  const handleEdit = (routine) => {
+  const handleEdit = useCallback((routine) => {
     setEditingRoutine(routine);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleDelete = (id) => {
+  const handleDelete = useCallback((id) => {
     if (window.confirm("정말로 이 루틴을 삭제하시겠습니까?")) {
       deleteRoutine(id);
     }
-  };
+  }, [deleteRoutine]);
 
-  const handleSave = (data) => {
+  const handleSave = useCallback((data) => {
     if (editingRoutine) {
       updateRoutine(editingRoutine.id, data);
     } else {
@@ -40,7 +40,7 @@ export default function RoutineList({ onSelectRoutine }) {
     }
     setIsModalOpen(false);
     setEditingRoutine(null);
-  };
+  }, [editingRoutine, updateRoutine, addRoutine]);
 
   return (
     <div className="max-w-md mx-auto p-4 pb-20">
