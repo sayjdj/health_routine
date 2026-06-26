@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const YOUTUBE_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
 
-export default function CustomRoutineModal({ initialData, onSave, onClose }) {
+const CustomRoutineModal = React.memo(function CustomRoutineModal({ initialData, onSave, onClose }) {
   const [formData, setFormData] = useState({
     title: '',
     youtubeId: '',
@@ -108,4 +108,6 @@ export default function CustomRoutineModal({ initialData, onSave, onClose }) {
       </div>
     </div>
   );
-}
+});
+
+export default CustomRoutineModal;
