@@ -7,3 +7,7 @@
 ## 2026-05-21 - Interval Churn in React Timers
 **Learning:** Found a performance issue in `useTimer.js` where `timeLeft` was included in the `useEffect` dependency array for the `setInterval` timer. This caused the interval to be cleared and recreated every single second, adding unnecessary overhead.
 **Action:** When using `setInterval` for a high-frequency timer, separate the pure tick logic into its own `useEffect` that only depends on the active state (e.g., `isPlaying`). Handle side-effects (beeps, phase transitions) in a separate `useEffect` by using refs (`useRef`) to detect edge transitions (like a tick down) without triggering interval recreation.
+
+## 2024-05-18 - React.memo Optimization on RoutineList
+**Learning:** Optimizing list rendering in React by extracting list items to a separate component and wrapping with `React.memo` requires strict attention to the parent's event handlers. If the parent doesn't use `useCallback` for functions passed down (or if custom hooks like `useRoutines` don't return stable function references), `React.memo` fails silently as props will always fail shallow comparison.
+**Action:** Always verify that custom hook functions (like `addRoutine`, `deleteRoutine`) and local event handlers passed to memoized components are wrapped in `useCallback` and utilize functional state updates where applicable to maintain stability.
